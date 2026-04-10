@@ -237,6 +237,15 @@
             btn.innerText = "SZÁMÍTÁS AZ MNB ÁRFOLYAMOK ALAPJÁN";
         }
     }
+    // Discord SDK inicializálása
+const discordSdk = new Discord.EmbeddedAppSdk.DiscordSDK("1492149802480439317");
+
+setupDiscord();
+
+async function setupDiscord() {
+    await discordSdk.ready();
+    console.log("Discord SDK kész!");
+}
 </script>
 </body>
 </html>
