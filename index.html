@@ -9,7 +9,6 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--discord-bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
         .container { background: var(--card-bg); padding: 25px; border-radius: 12px; width: 100%; max-width: 650px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #4E5058; }
         
-        /* Cím és Link stílusa */
         .header-box { border-bottom: 2px solid var(--blurple); margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
         .header-box h2 { margin: 0; color: white; font-size: 1.5rem; line-height: 1.2; }
         .header-box .brand-link { color: var(--blurple); text-decoration: none; font-size: 0.9rem; font-weight: bold; }
@@ -33,7 +32,6 @@
         .summary-box { background: #232428; padding: 20px; border-radius: 8px; margin-top: 25px; border-left: 5px solid var(--red); display: none; }
         .grand-total { font-size: 1.5rem; color: var(--red); font-weight: bold; margin-top: 10px; border-top: 1px solid #4E5058; padding-top: 10px; }
 
-        /* Figyelmeztetés és Kapcsolat */
         .warning-box { margin-top: 30px; padding: 15px; border: 2px solid var(--red); border-radius: 8px; background: rgba(242, 63, 67, 0.05); color: #FFFFFF; font-size: 0.85rem; }
         .warning-box strong { color: var(--red); text-transform: uppercase; display: block; margin-bottom: 5px; }
         .footer-contact { margin-top: 15px; text-align: center; font-size: 0.8rem; color: #B5BAC1; }
@@ -63,7 +61,7 @@
                 </select>
             </div>
         </div>
-        <button class="add-btn" onclick="addToList()">+ TÉTEL HOZZÁADÁSA</button>
+        <button class="add-btn" id="addBtn">+ TÉTEL HOZZÁADÁSA</button>
     </div>
 
     <table id="mainTable" style="display:none;">
@@ -79,7 +77,7 @@
         <tbody id="payoutList"></tbody>
     </table>
 
-    <button id="finalBtn" class="calc-all-btn" style="display:none;" onclick="fetchAllAndCalculate()">
+    <button id="finalBtn" class="calc-all-btn" style="display:none;">
         SZÁMÍTÁS AZ MNB ÁRFOLYAMOK ALAPJÁN
     </button>
 
@@ -89,9 +87,7 @@
 
     <div class="warning-box">
         <strong>Figyelem!</strong>
-        Ez az eszköz kizárólag tájékoztató jellegű számításokat végez, és nem helyettesíti a hivatalos adóbevallást. 
-        Mivel a számolt adatok tájékoztató jellegűek, azokat <strong>ne használja fel közvetlenül adóbevallás elkészítéséhez!</strong> 
-        Minden esetben számoljon utána saját maga is az összegeknek, és kötelezően kérje ki <strong>profi könyvelő segítségét</strong> a jogszabályoknak megfelelő adóbevallás benyújtásához.
+        Ez az eszköz kizárólag tájékoztató jellegű számításokat végez...
     </div>
 
     <div class="footer-contact">
@@ -100,11 +96,12 @@
 </div>
 
 <script>
-    // A TE SAJÁT PROXY-D
     const PROXY_URL = "https://script.google.com/macros/s/AKfycbyRiiKOrER2p9g6ea1-2mV3S-k3Sq-e8G2fc9FbJWMbf0AbRXlnkDK8ZOyVMtRTYH73JA/exec";
     let rawItems = [];
 
-    // Mai dátum beállítása alapértelmezettnek
+    // Discord SDK inicializálása - a te ID-ddal
+    const discordSdk = new Discord.EmbeddedAppSdk.DiscordSDK("1492149802480439317");
+
     document.getElementById('pDate').valueAsDate = new Date();
 
     function addToList() {
@@ -125,7 +122,7 @@
             huf: null
         });
 
-        document.getElementById('pAmt').value = ""; // Mező ürítése
+        document.getElementById('pAmt').value = "";
         renderTable();
     }
 
@@ -144,24 +141,28 @@
 
         list.innerHTML = "";
         rawItems.forEach((item, index) => {
-            list.innerHTML += `
-                <tr>
-                    <td>${item.date}</td>
-                    <td>${item.amount.toLocaleString()} ${item.curr}</td>
-                    <td>${item.rate ? item.rate.toFixed(2) : '---'}</td>
-                    <td>${item.huf ? item.huf.toLocaleString() + ' Ft' : '---'}</td>
-                    <td style="text-align:right;">
-                        <button style="background:none; color:#F23F43; font-size:1.2rem; cursor:pointer;" onclick="removeItem(${index})">×</button>
-                    </td>
-                </tr>
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.date}</td>
+                <td>${item.amount.toLocaleString()} ${item.curr}</td>
+                <td>${item.rate ? item.rate.toFixed(2) : '---'}</td>
+                <td>${item.huf ? item.huf.toLocaleString() + ' Ft' : '---'}</td>
+                <td style="text-align:right;">
+                    <button class="remove-btn" data-index="${index}" style="background:none; color:#F23F43; font-size:1.2rem; cursor:pointer;">×</button>
+                </td>
             `;
+            list.appendChild(tr);
         });
-    }
 
-    function removeItem(index) {
-        rawItems.splice(index, 1);
-        document.getElementById('summary').style.display = "none";
-        renderTable();
+        // Törlés gombok kezelése
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.onclick = function() {
+                const idx = this.getAttribute('data-index');
+                rawItems.splice(idx, 1);
+                document.getElementById('summary').style.display = "none";
+                renderTable();
+            };
+        });
     }
 
     async function fetchAllAndCalculate() {
@@ -179,7 +180,6 @@
         try {
             const resp = await fetch(`${PROXY_URL}?url=${encodeURIComponent(mnbUrl)}`);
             const data = await resp.text();
-            
             const doc = new DOMParser().parseFromString(data, 'text/html');
             const rows = doc.querySelectorAll('table tbody tr');
             const months = {"január":"01","február":"02","március":"03","április":"04","május":"05","június":"06","július":"07","augusztus":"08","szeptember":"09","október":"10","november":"11","december":"12"};
@@ -231,21 +231,24 @@
             summary.style.display = "block";
 
         } catch (e) {
-            alert("Hiba történt az adatok lekérésekor! Ellenőrizd az internetkapcsolatot vagy a Google Scriptet.");
+            alert("Hiba az adatoknál!");
         } finally {
             btn.disabled = false;
             btn.innerText = "SZÁMÍTÁS AZ MNB ÁRFOLYAMOK ALAPJÁN";
         }
     }
-    // Discord SDK inicializálása
-const discordSdk = new Discord.EmbeddedAppSdk.DiscordSDK("1492149802480439317");
 
-setupDiscord();
+    // Discord SDK és gombok összekötése
+    async function setup() {
+        await discordSdk.ready();
+        console.log("Discord kész!");
+        
+        // Itt rendeljük hozzá az eseményeket a gombokhoz
+        document.getElementById('addBtn').addEventListener('click', addToList);
+        document.getElementById('finalBtn').addEventListener('click', fetchAllAndCalculate);
+    }
 
-async function setupDiscord() {
-    await discordSdk.ready();
-    console.log("Discord SDK kész!");
-}
+    setup();
 </script>
 </body>
 </html>
