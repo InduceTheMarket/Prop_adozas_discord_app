@@ -2,67 +2,45 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <title>TradingBox | Prop Firm Adó-Iránytű</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/@discord/embedded-app-sdk"></script>
+    <title>TradingBox | Prop Adó Kalkulátor</title>
     <style>
         :root { --discord-bg: #313338; --card-bg: #2B2D31; --blurple: #5865F2; --text: #DBDEE1; --red: #F23F43; --green: #23A559; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--discord-bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
-        .container { background: var(--card-bg); padding: 25px; border-radius: 12px; width: 100%; max-width: 650px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #4E5058; }
-        
-        /* Cím és Link stílusa */
-        .header-box { border-bottom: 2px solid var(--blurple); margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .header-box h2 { margin: 0; color: white; font-size: 1.5rem; line-height: 1.2; }
-        .header-box .brand-link { color: var(--blurple); text-decoration: none; font-size: 0.9rem; font-weight: bold; }
-        .header-box .sub-title { color: #B5BAC1; font-size: 0.85rem; display: block; margin-top: 5px; }
-
-        .input-group { background: #1E1F22; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #4E5058; }
-        .row { display: flex; gap: 10px; margin-bottom: 10px; }
-        label { display: block; margin-bottom: 5px; font-size: 0.8rem; color: #B5BAC1; }
-        input, select { background: #2B2D31; color: white; padding: 10px; border-radius: 5px; border: 1px solid #4E5058; flex: 1; }
-        
-        button { border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .add-btn { background: var(--blurple); color: white; width: 100%; padding: 12px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--discord-bg); color: var(--text); padding: 15px; margin: 0; display: flex; justify-content: center; }
+        .container { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #4E5058; }
+        h3 { color: white; margin-top: 0; border-bottom: 2px solid var(--blurple); padding-bottom: 10px; }
+        .input-group { background: #1E1F22; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #4E5058; }
+        .row { display: flex; gap: 8px; margin-bottom: 10px; }
+        input, select { background: #2B2D31; color: white; padding: 10px; border-radius: 5px; border: 1px solid #4E5058; flex: 1; min-width: 0; }
+        button { border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; padding: 12px; }
+        .add-btn { background: var(--blurple); color: white; width: 100%; }
         .add-btn:hover { background: #4752C4; }
-        .calc-all-btn { background: var(--green); color: white; width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 20px; }
-        .calc-all-btn:hover { background: #1A8347; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85rem; }
-        th { text-align: left; color: #B5BAC1; border-bottom: 1px solid #4E5058; padding: 10px; }
-        td { padding: 10px; border-bottom: 1px dotted #4E5058; }
-        
-        .summary-box { background: #232428; padding: 20px; border-radius: 8px; margin-top: 25px; border-left: 5px solid var(--red); display: none; }
-        .grand-total { font-size: 1.5rem; color: var(--red); font-weight: bold; margin-top: 10px; border-top: 1px solid #4E5058; padding-top: 10px; }
-
-        /* Figyelmeztetés és Kapcsolat */
-        .warning-box { margin-top: 30px; padding: 15px; border: 2px solid var(--red); border-radius: 8px; background: rgba(242, 63, 67, 0.05); color: #FFFFFF; font-size: 0.85rem; }
-        .warning-box strong { color: var(--red); text-transform: uppercase; display: block; margin-bottom: 5px; }
-        .footer-contact { margin-top: 15px; text-align: center; font-size: 0.8rem; color: #B5BAC1; }
-        .footer-contact a { color: var(--blurple); text-decoration: none; }
+        .calc-all-btn { background: var(--green); color: white; width: 100%; font-size: 1rem; margin-top: 15px; }
+        .calc-all-btn:disabled { opacity: 0.5; cursor: wait; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
+        th { text-align: left; color: #B5BAC1; border-bottom: 1px solid #4E5058; padding: 8px; }
+        td { padding: 8px; border-bottom: 1px dotted #4E5058; }
+        .summary-box { background: #232428; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 5px solid var(--red); display: none; }
+        .grand-total { font-size: 1.2rem; color: var(--red); font-weight: bold; margin-top: 10px; border-top: 1px solid #4E5058; padding-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header-box">
-        <div>
-            <h2>TradingBox</h2>
-            <span class="sub-title">Prop Firm Adózási Kalkulátor</span>
-        </div>
-        <a href="https://tradingbox.hu" target="_blank" class="brand-link">tradingbox.hu</a>
-    </div>
+    <h3>TradingBox Prop Adó</h3>
 
     <div class="input-group">
         <div class="row">
-            <div style="flex:2"><label>Kifizetés napja</label><input type="date" id="pDate"></div>
-            <div style="flex:2"><label>Profit összege</label><input type="number" id="pAmt" placeholder="0.00" step="0.01"></div>
-            <div style="flex:1"><label>Deviza</label>
-                <select id="pCurr">
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                </select>
-            </div>
+            <input type="date" id="pDate">
+            <input type="number" id="pAmt" placeholder="Összeg" step="0.01">
+            <select id="pCurr">
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+            </select>
         </div>
-        <button class="add-btn" onclick="addToList()">+ TÉTEL HOZZÁADÁSA</button>
+        <button type="button" class="add-btn" id="addBtn">TÉTEL HOZZÁADÁSA</button>
     </div>
 
     <table id="mainTable" style="display:none;">
@@ -70,61 +48,57 @@
             <tr>
                 <th>Dátum</th>
                 <th>Összeg</th>
-                <th>Árfolyam</th>
-                <th>Forint alap</th>
                 <th></th>
             </tr>
         </thead>
         <tbody id="payoutList"></tbody>
     </table>
 
-    <button id="finalBtn" class="calc-all-btn" style="display:none;" onclick="fetchAllAndCalculate()">
-        SZÁMÍTÁS AZ MNB ÁRFOLYAMOK ALAPJÁN
-    </button>
+    <button type="button" id="finalBtn" class="calc-all-btn" style="display:none;">ÁRFOLYAM LEKÉRÉS ÉS SZÁMÍTÁS</button>
 
     <div id="summary" class="summary-box">
         <div id="summaryContent"></div>
     </div>
-
-    <div class="warning-box">
-        <strong>Figyelem!</strong>
-        Ez az eszköz kizárólag tájékoztató jellegű számításokat végez, és nem helyettesíti a hivatalos adóbevallást. 
-        Mivel a számolt adatok tájékoztató jellegűek, azokat <strong>ne használja fel közvetlenül adóbevallás elkészítéséhez!</strong> 
-        Minden esetben számoljon utána saját maga is az összegeknek, és kötelezően kérje ki <strong>profi könyvelő segítségét</strong> a jogszabályoknak megfelelő adóbevallás benyújtásához.
-    </div>
-
-    <div class="footer-contact">
-        Kérdés esetén: <a href="mailto:info@tradingbox.hu">info@tradingbox.hu</a>
-    </div>
 </div>
 
 <script>
-    // A TE SAJÁT PROXY-D
-    const PROXY_URL = "https://script.google.com/macros/s/AKfycbyRiiKOrER2p9g6ea1-2mV3S-k3Sq-e8G2fc9FbJWMbf0AbRXlnkDK8ZOyVMtRTYH73JA/exec";
+    // FONTOS: Ez a /proxy az, amit a Discord Portalon beállítottál!
+    const PROXY_URL = "/proxy/get?url=";
     let rawItems = [];
 
-    // Mai dátum beállítása alapértelmezettnek
-    document.getElementById('pDate').valueAsDate = new Date();
+    // Discord SDK inicializálása
+    try {
+        const discordSdk = new Discord.EmbeddedAppSdk.DiscordSDK("1492149802480439317");
+        discordSdk.ready().then(() => { console.log("Discord SDK kész."); });
+    } catch (e) { console.log("Böngésző mód"); }
+
+    // Gombok bekötése az oldal betöltése után
+    window.addEventListener('load', () => {
+        document.getElementById('pDate').valueAsDate = new Date();
+        
+        document.getElementById('addBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            addToList();
+        });
+
+        document.getElementById('finalBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            fetchAllAndCalculate();
+        });
+    });
 
     function addToList() {
-        const dateInput = document.getElementById('pDate').value;
-        const amtInput = document.getElementById('pAmt').value;
-        const currInput = document.getElementById('pCurr').value;
+        const d = document.getElementById('pDate').value;
+        const a = document.getElementById('pAmt').value;
+        const c = document.getElementById('pCurr').value;
 
-        if (!dateInput || !amtInput || parseFloat(amtInput) <= 0) {
-            alert("Kérlek adj meg egy érvényes dátumot és összeget!");
+        if (!d || !a || parseFloat(a) <= 0) {
+            alert("Kérlek adj meg érvényes összeget!");
             return;
         }
 
-        rawItems.push({
-            date: dateInput,
-            amount: parseFloat(amtInput),
-            curr: currInput,
-            rate: null,
-            huf: null
-        });
-
-        document.getElementById('pAmt').value = ""; // Mező ürítése
+        rawItems.push({ date: d, amount: parseFloat(a), curr: c });
+        document.getElementById('pAmt').value = "";
         renderTable();
     }
 
@@ -133,26 +107,18 @@
         const list = document.getElementById('payoutList');
         const finalBtn = document.getElementById('finalBtn');
 
-        if (rawItems.length > 0) {
-            table.style.display = "table";
-            finalBtn.style.display = "block";
-        } else {
-            table.style.display = "none";
-            finalBtn.style.display = "none";
-        }
+        table.style.display = rawItems.length > 0 ? "table" : "none";
+        finalBtn.style.display = rawItems.length > 0 ? "block" : "none";
 
         list.innerHTML = "";
         rawItems.forEach((item, index) => {
-            list.innerHTML += `
-                <tr>
-                    <td>${item.date}</td>
-                    <td>${item.amount.toLocaleString()} ${item.curr}</td>
-                    <td>${item.rate ? item.rate.toFixed(2) : '---'}</td>
-                    <td>${item.huf ? item.huf.toLocaleString() + ' Ft' : '---'}</td>
-                    <td style="text-align:right;">
-                        <button style="background:none; color:#F23F43; font-size:1.2rem; cursor:pointer;" onclick="removeItem(${index})">×</button>
-                    </td>
-                </tr>
+            const row = list.insertRow();
+            row.innerHTML = `
+                <td>${item.date}</td>
+                <td>${item.amount.toLocaleString()} ${item.curr}</td>
+                <td style="text-align:right;">
+                    <button type="button" onclick="removeItem(${index})" style="background:none; color:var(--red); font-size:1.2rem; padding:0;">×</button>
+                </td>
             `;
         });
     }
@@ -165,75 +131,68 @@
 
     async function fetchAllAndCalculate() {
         const btn = document.getElementById('finalBtn');
-        const summary = document.getElementById('summary');
-        const summaryContent = document.getElementById('summaryContent');
-
         btn.disabled = true;
-        btn.innerText = "MNB adatok letöltése...";
-
-        const today = new Date();
-        const till = `${today.getFullYear()}.+${String(today.getMonth()+1).padStart(2,'0')}.+${String(today.getDate()).padStart(2,'0')}.`;
-        const mnbUrl = `https://www.mnb.hu/arfolyam-tablazat?deviza=rbCustom&devizaSelected=USD&datefrom=2020.+01.+01.&datetill=${till}&order=1&customdeviza%5B%5D=EUR&customdeviza%5B%5D=USD&customdeviza%5B%5D=GBP`;
+        btn.innerText = "Lekérés folyamatban...";
 
         try {
-            const resp = await fetch(`${PROXY_URL}?url=${encodeURIComponent(mnbUrl)}`);
-            const data = await resp.text();
+            const mnbUrl = "https://www.mnb.hu/arfolyam-tablazat?deviza=rbCustom&devizaSelected=USD&datefrom=2024.+01.+01.&datetill=2026.+12.+31.&order=1&customdeviza%5B%5D=EUR&customdeviza%5B%5D=USD&customdeviza%5B%5D=GBP";
             
-            const doc = new DOMParser().parseFromString(data, 'text/html');
-            const rows = doc.querySelectorAll('table tbody tr');
+            // Itt hívjuk meg a Discord-on keresztül a proxyt
+            const response = await fetch(PROXY_URL + encodeURIComponent(mnbUrl));
+            if (!response.ok) throw new Error("A proxy nem elérhető.");
+            
+            const json = await response.json();
+            const data = json.contents;
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data, "text/html");
+            const rows = doc.querySelectorAll("table tbody tr");
+            
             const months = {"január":"01","február":"02","március":"03","április":"04","május":"05","június":"06","július":"07","augusztus":"08","szeptember":"09","október":"10","november":"11","december":"12"};
-            
             let ratesTable = {};
+
             rows.forEach(row => {
-                const c = row.querySelectorAll('td');
-                if (c.length >= 4) {
-                    try {
-                        const dParts = c[0].innerText.trim().split(',')[0].trim().split(' ');
-                        const iso = `${dParts[0].replace('.','')}-${months[dParts[1].toLowerCase()]}-${dParts[2].replace('.','').padStart(2,'0')}`;
-                        ratesTable[iso] = {
-                            "EUR": parseFloat(c[1].innerText.replace(',','.')),
-                            "GBP": parseFloat(c[2].innerText.replace(',','.')),
-                            "USD": parseFloat(c[3].innerText.replace(',','.'))
-                        };
-                    } catch(err) {}
+                const cells = row.querySelectorAll("td");
+                if (cells.length >= 4) {
+                    const p = cells[0].innerText.trim().split(' ');
+                    const iso = `${p[0].replace('.','')}-${months[p[1].toLowerCase()]}-${p[2].replace('.','').padStart(2,'0')}`;
+                    ratesTable[iso] = {
+                        "EUR": parseFloat(cells[1].innerText.replace(',','.')),
+                        "GBP": parseFloat(cells[2].innerText.replace(',','.')),
+                        "USD": parseFloat(cells[3].innerText.replace(',','.'))
+                    };
                 }
             });
 
             let totalHuf = 0;
             rawItems.forEach(item => {
-                let check = new Date(item.date);
-                for (let i = 0; i < 12; i++) {
-                    let iso = check.toISOString().split('T')[0];
-                    if (ratesTable[iso]) {
-                        item.rate = ratesTable[iso][item.curr];
-                        item.huf = Math.round(item.amount * item.rate);
-                        totalHuf += item.huf;
+                let checkDate = new Date(item.date);
+                for (let i = 0; i < 15; i++) {
+                    let s = checkDate.toISOString().split('T')[0];
+                    if (ratesTable[s]) {
+                        totalHuf += (item.amount * ratesTable[s][item.curr]);
                         break;
                     }
-                    check.setDate(check.getDate() - 1);
+                    checkDate.setDate(checkDate.getDate() - 1);
                 }
             });
-
-            renderTable();
 
             const szja = Math.round(totalHuf * 0.15);
             const szocho = Math.round(totalHuf * 0.13);
 
-            summaryContent.innerHTML = `
-                <div style="display:flex; justify-content:space-between"><span>Bruttó alap összesen:</span> <b>${totalHuf.toLocaleString()} Ft</b></div>
-                <div style="display:flex; justify-content:space-between; margin-top:5px;"><span>Összes SZJA (15%):</span> <span>${szja.toLocaleString()} Ft</span></div>
-                <div style="display:flex; justify-content:space-between"><span>Összes SZOCHO (13%):</span> <span>${szocho.toLocaleString()} Ft</span></div>
-                <div class="grand-total" style="display:flex; justify-content:space-between">
-                    <span>FIZETENDŐ ADÓ:</span> <span>${(szja + szocho).toLocaleString()} Ft</span>
-                </div>
+            document.getElementById('summaryContent').innerHTML = `
+                <div style="display:flex; justify-content:space-between"><span>Összesen (HUF):</span> <b>${Math.round(totalHuf).toLocaleString()} Ft</b></div>
+                <div style="display:flex; justify-content:space-between"><span>SZJA (15%):</span> <span>${szja.toLocaleString()} Ft</span></div>
+                <div style="display:flex; justify-content:space-between"><span>SZOCHO (13%):</span> <span>${szocho.toLocaleString()} Ft</span></div>
+                <div class="grand-total" style="display:flex; justify-content:space-between"><span>ADÓ:</span> <span>${(szja+szocho).toLocaleString()} Ft</span></div>
             `;
-            summary.style.display = "block";
+            document.getElementById('summary').style.display = "block";
 
-        } catch (e) {
-            alert("Hiba történt az adatok lekérésekor! Ellenőrizd az internetkapcsolatot vagy a Google Scriptet.");
+        } catch (error) {
+            alert("Hiba: " + error.message + "\nEllenőrizd az URL Mapping beállításokat!");
         } finally {
             btn.disabled = false;
-            btn.innerText = "SZÁMÍTÁS AZ MNB ÁRFOLYAMOK ALAPJÁN";
+            btn.innerText = "ÁRFOLYAM LEKÉRÉS ÉS SZÁMÍTÁS";
         }
     }
 </script>
