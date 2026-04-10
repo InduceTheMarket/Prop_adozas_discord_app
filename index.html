@@ -4,57 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://unpkg.com/@discord/embedded-app-sdk"></script>
-    <title>TradingBox | Prop Adó Kalkulátor</title>
+    <title>TradingBox | Prop Firm Adó-Iránytű</title>
     <style>
         :root { --discord-bg: #313338; --card-bg: #2B2D31; --blurple: #5865F2; --text: #DBDEE1; --red: #F23F43; --green: #23A559; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--discord-bg); color: var(--text); padding: 15px; margin: 0; display: flex; justify-content: center; }
-        .container { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #4E5058; }
-        h3 { color: white; margin-top: 0; border-bottom: 2px solid var(--blurple); padding-bottom: 10px; }
-        .input-group { background: #1E1F22; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #4E5058; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--discord-bg); color: var(--text); padding: 20px; display: flex; justify-content: center; margin: 0; }
+        .container { background: var(--card-bg); padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #4E5058; }
+        
+        /* Design elemek */
+        .header-box { border-bottom: 2px solid var(--blurple); margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .header-box h2 { margin: 0; color: white; font-size: 1.4rem; }
+        .brand-link { color: var(--blurple); text-decoration: none; font-size: 0.85rem; font-weight: bold; }
+        
+        .input-group { background: #1E1F22; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #4E5058; }
         .row { display: flex; gap: 8px; margin-bottom: 10px; }
         input, select { background: #2B2D31; color: white; padding: 10px; border-radius: 5px; border: 1px solid #4E5058; flex: 1; min-width: 0; }
+        
         button { border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; padding: 12px; }
         .add-btn { background: var(--blurple); color: white; width: 100%; }
-        .add-btn:hover { background: #4752C4; }
         .calc-all-btn { background: var(--green); color: white; width: 100%; font-size: 1rem; margin-top: 15px; }
-        .calc-all-btn:disabled { opacity: 0.5; cursor: wait; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
         th { text-align: left; color: #B5BAC1; border-bottom: 1px solid #4E5058; padding: 8px; }
         td { padding: 8px; border-bottom: 1px dotted #4E5058; }
-        .summary-box { background: #232428; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 5px solid var(--red); display: none; }
+        
+        .summary-box { background: #232428; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 5px solid var(--red); display: none; color: white; }
         .grand-total { font-size: 1.2rem; color: var(--red); font-weight: bold; margin-top: 10px; border-top: 1px solid #4E5058; padding-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3>TradingBox Prop Adó</h3>
+    <div class="header-box">
+        <div>
+            <h2>TradingBox</h2>
+            <small style="color: #B5BAC1;">Prop Firm Adó-Iránytű</small>
+        </div>
+        <a href="https://tradingbox.hu" target="_blank" class="brand-link">tradingbox.hu</a>
+    </div>
 
     <div class="input-group">
         <div class="row">
             <input type="date" id="pDate">
-            <input type="number" id="pAmt" placeholder="Összeg" step="0.01">
+            <input type="number" id="pAmt" placeholder="Profit" step="0.01">
             <select id="pCurr">
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
                 <option value="GBP">GBP</option>
             </select>
         </div>
-        <button type="button" class="add-btn" id="addBtn">TÉTEL HOZZÁADÁSA</button>
+        <button type="button" class="add-btn" id="addBtn">+ TÉTEL HOZZÁADÁSA</button>
     </div>
 
     <table id="mainTable" style="display:none;">
         <thead>
-            <tr>
-                <th>Dátum</th>
-                <th>Összeg</th>
-                <th></th>
-            </tr>
+            <tr><th>Dátum</th><th>Összeg</th><th></th></tr>
         </thead>
         <tbody id="payoutList"></tbody>
     </table>
 
-    <button type="button" id="finalBtn" class="calc-all-btn" style="display:none;">ÁRFOLYAM LEKÉRÉS ÉS SZÁMÍTÁS</button>
+    <button type="button" id="finalBtn" class="calc-all-btn" style="display:none;">SZÁMÍTÁS MNB ÁRFOLYAMOKKAL</button>
 
     <div id="summary" class="summary-box">
         <div id="summaryContent"></div>
@@ -62,118 +70,100 @@
 </div>
 
 <script>
-    // FONTOS: Ez a /proxy az, amit a Discord Portalon beállítottál!
-    const PROXY_URL = "/proxy/get?url=";
+    // INTELLIGENS PROXY VÁLASZTÓ
+    let PROXY_URL;
+    if (window.location.hostname.includes('discord') || window.location.href.includes('frame')) {
+        PROXY_URL = "/proxy/get?url="; 
+    } else {
+        PROXY_URL = "https://api.allorigins.win/get?url=";
+    }
+
     let rawItems = [];
 
-    // Discord SDK inicializálása
-    try {
-        const discordSdk = new Discord.EmbeddedAppSdk.DiscordSDK("1492149802480439317");
-        discordSdk.ready().then(() => { console.log("Discord SDK kész."); });
-    } catch (e) { console.log("Böngésző mód"); }
-
-    // Gombok bekötése az oldal betöltése után
+    // Gombok bekötése
     window.addEventListener('load', () => {
         document.getElementById('pDate').valueAsDate = new Date();
         
-        document.getElementById('addBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            addToList();
-        });
+        document.getElementById('addBtn').onclick = function() {
+            const d = document.getElementById('pDate').value;
+            const a = document.getElementById('pAmt').value;
+            const c = document.getElementById('pCurr').value;
 
-        document.getElementById('finalBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            fetchAllAndCalculate();
-        });
+            if (!d || !a || a <= 0) return alert("Hibás adatok!");
+
+            rawItems.push({ date: d, amount: parseFloat(a), curr: c });
+            document.getElementById('pAmt').value = "";
+            render();
+        };
+
+        document.getElementById('finalBtn').onclick = fetchAllAndCalculate;
     });
 
-    function addToList() {
-        const d = document.getElementById('pDate').value;
-        const a = document.getElementById('pAmt').value;
-        const c = document.getElementById('pCurr').value;
-
-        if (!d || !a || parseFloat(a) <= 0) {
-            alert("Kérlek adj meg érvényes összeget!");
-            return;
-        }
-
-        rawItems.push({ date: d, amount: parseFloat(a), curr: c });
-        document.getElementById('pAmt').value = "";
-        renderTable();
-    }
-
-    function renderTable() {
+    function render() {
         const table = document.getElementById('mainTable');
         const list = document.getElementById('payoutList');
-        const finalBtn = document.getElementById('finalBtn');
+        const btn = document.getElementById('finalBtn');
 
         table.style.display = rawItems.length > 0 ? "table" : "none";
-        finalBtn.style.display = rawItems.length > 0 ? "block" : "none";
-
+        btn.style.display = rawItems.length > 0 ? "block" : "none";
         list.innerHTML = "";
+
         rawItems.forEach((item, index) => {
             const row = list.insertRow();
             row.innerHTML = `
                 <td>${item.date}</td>
                 <td>${item.amount.toLocaleString()} ${item.curr}</td>
                 <td style="text-align:right;">
-                    <button type="button" onclick="removeItem(${index})" style="background:none; color:var(--red); font-size:1.2rem; padding:0;">×</button>
-                </td>
-            `;
+                    <button onclick="removeItem(${index})" style="background:none; color:var(--red); font-weight:bold; padding:0;">×</button>
+                </td>`;
         });
     }
 
     function removeItem(index) {
         rawItems.splice(index, 1);
-        document.getElementById('summary').style.display = "none";
-        renderTable();
+        render();
     }
 
     async function fetchAllAndCalculate() {
         const btn = document.getElementById('finalBtn');
         btn.disabled = true;
-        btn.innerText = "Lekérés folyamatban...";
+        btn.innerText = "Lekérés...";
 
         try {
             const mnbUrl = "https://www.mnb.hu/arfolyam-tablazat?deviza=rbCustom&devizaSelected=USD&datefrom=2024.+01.+01.&datetill=2026.+12.+31.&order=1&customdeviza%5B%5D=EUR&customdeviza%5B%5D=USD&customdeviza%5B%5D=GBP";
-            
-            // Itt hívjuk meg a Discord-on keresztül a proxyt
             const response = await fetch(PROXY_URL + encodeURIComponent(mnbUrl));
-            if (!response.ok) throw new Error("A proxy nem elérhető.");
-            
             const json = await response.json();
-            const data = json.contents;
             
             const parser = new DOMParser();
-            const doc = parser.parseFromString(data, "text/html");
+            const doc = parser.parseFromString(json.contents, "text/html");
             const rows = doc.querySelectorAll("table tbody tr");
             
             const months = {"január":"01","február":"02","március":"03","április":"04","május":"05","június":"06","július":"07","augusztus":"08","szeptember":"09","október":"10","november":"11","december":"12"};
-            let ratesTable = {};
+            let rates = {};
 
-            rows.forEach(row => {
-                const cells = row.querySelectorAll("td");
-                if (cells.length >= 4) {
-                    const p = cells[0].innerText.trim().split(' ');
+            rows.forEach(r => {
+                const td = r.querySelectorAll("td");
+                if(td.length >= 4) {
+                    const p = td[0].innerText.trim().split(' ');
                     const iso = `${p[0].replace('.','')}-${months[p[1].toLowerCase()]}-${p[2].replace('.','').padStart(2,'0')}`;
-                    ratesTable[iso] = {
-                        "EUR": parseFloat(cells[1].innerText.replace(',','.')),
-                        "GBP": parseFloat(cells[2].innerText.replace(',','.')),
-                        "USD": parseFloat(cells[3].innerText.replace(',','.'))
+                    rates[iso] = {
+                        "EUR": parseFloat(td[1].innerText.replace(',','.')),
+                        "GBP": parseFloat(td[2].innerText.replace(',','.')),
+                        "USD": parseFloat(td[3].innerText.replace(',','.'))
                     };
                 }
             });
 
             let totalHuf = 0;
             rawItems.forEach(item => {
-                let checkDate = new Date(item.date);
-                for (let i = 0; i < 15; i++) {
-                    let s = checkDate.toISOString().split('T')[0];
-                    if (ratesTable[s]) {
-                        totalHuf += (item.amount * ratesTable[s][item.curr]);
+                let temp = new Date(item.date);
+                for(let i=0; i<15; i++) {
+                    let s = temp.toISOString().split('T')[0];
+                    if(rates[s]) {
+                        totalHuf += (item.amount * rates[s][item.curr]);
                         break;
                     }
-                    checkDate.setDate(checkDate.getDate() - 1);
+                    temp.setDate(temp.getDate() - 1);
                 }
             });
 
@@ -181,18 +171,17 @@
             const szocho = Math.round(totalHuf * 0.13);
 
             document.getElementById('summaryContent').innerHTML = `
-                <div style="display:flex; justify-content:space-between"><span>Összesen (HUF):</span> <b>${Math.round(totalHuf).toLocaleString()} Ft</b></div>
-                <div style="display:flex; justify-content:space-between"><span>SZJA (15%):</span> <span>${szja.toLocaleString()} Ft</span></div>
-                <div style="display:flex; justify-content:space-between"><span>SZOCHO (13%):</span> <span>${szocho.toLocaleString()} Ft</span></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Bruttó alap:</span> <b>${Math.round(totalHuf).toLocaleString()} Ft</b></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>SZJA (15%):</span> <span>${szja.toLocaleString()} Ft</span></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>SZOCHO (13%):</span> <span>${szocho.toLocaleString()} Ft</span></div>
                 <div class="grand-total" style="display:flex; justify-content:space-between"><span>ADÓ:</span> <span>${(szja+szocho).toLocaleString()} Ft</span></div>
             `;
             document.getElementById('summary').style.display = "block";
-
-        } catch (error) {
-            alert("Hiba: " + error.message + "\nEllenőrizd az URL Mapping beállításokat!");
+        } catch(e) {
+            alert("Szerver hiba! Próbáld újra.");
         } finally {
             btn.disabled = false;
-            btn.innerText = "ÁRFOLYAM LEKÉRÉS ÉS SZÁMÍTÁS";
+            btn.innerText = "SZÁMÍTÁS MNB ÁRFOLYAMOKKAL";
         }
     }
 </script>
