@@ -19,12 +19,13 @@
         button { border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .add-btn { background: var(--blurple); color: white; width: 100%; padding: 12px; }
         .calc-all-btn { background: var(--green); color: white; width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 20px; }
+        .calc-all-btn:disabled { background: #4E5058; cursor: not-allowed; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85rem; }
         th { text-align: left; color: #B5BAC1; border-bottom: 1px solid #4E5058; padding: 10px; }
         td { padding: 10px; border-bottom: 1px dotted #4E5058; }
         .summary-box { background: #232428; padding: 20px; border-radius: 8px; margin-top: 25px; border-left: 5px solid var(--red); display: none; }
         .grand-total { font-size: 1.5rem; color: var(--red); font-weight: bold; margin-top: 10px; border-top: 1px solid #4E5058; padding-top: 10px; }
-        .warning-box { margin-top: 30px; padding: 15px; border: 2px solid var(--red); border-radius: 8px; background: rgba(242, 63, 67, 0.05); color: #FFFFFF; font-size: 0.85rem; }
+        .warning-box { margin-top: 30px; padding: 15px; border: 2px solid var(--red); border-radius: 8px; background: rgba(242, 63, 67, 0.05); color: #FFFFFF; font-size: 0.85rem; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -69,7 +70,7 @@
     </div>
 
     <div class="warning-box">
-        <strong>Figyelem!</strong> Kizárólag tájékoztató jellegű számítás!
+        <strong>Figyelem!</strong> Ez a kalkulátor kizárólag tájékoztató jellegű. Az adatok nem minősülnek hivatalos adóbevallásnak. Kérjük, konzultáljon könyvelővel!
     </div>
 </div>
 
@@ -77,18 +78,18 @@
     const PROXY_URL = "https://script.google.com/macros/s/AKfycbyRiiKOrER2p9g6ea1-2mV3S-k3Sq-e8G2fc9FbJWMbf0AbRXlnkDK8ZOyVMtRTYH73JA/exec";
     let rawItems = [];
 
-    // Discord SDK hiba elleni védelem
+    // Discord SDK Inicializálás
     try {
         const discordSdk = new Discord.EmbeddedAppSdk.DiscordSDK("1492149802480439317");
-        discordSdk.ready().catch(e => console.error("SDK hiba:", e));
-    } catch (e) { console.log("Böngésző mód"); }
+        discordSdk.ready().then(() => { console.log("Discord SDK kész!"); });
+    } catch (e) { console.log("Böngészőben fut"); }
 
-    // Gombok bekötése az oldal betöltésekor
+    // Eseménykezelők
     window.onload = function() {
         document.getElementById('pDate').valueAsDate = new Date();
         
         document.getElementById('addBtn').addEventListener('click', function(e) {
-            e.preventDefault(); 
+            e.preventDefault();
             addToList();
         });
 
@@ -104,7 +105,7 @@
         const currInput = document.getElementById('pCurr').value;
 
         if (!dateInput || !amtInput || parseFloat(amtInput) <= 0) {
-            alert("Hibás adatok!");
+            alert("Kérlek adj meg érvényes adatokat!");
             return;
         }
 
@@ -136,7 +137,9 @@
                 <td>${item.amount.toLocaleString()} ${item.curr}</td>
                 <td>${item.rate ? item.rate.toFixed(2) : '---'}</td>
                 <td>${item.huf ? item.huf.toLocaleString() + ' Ft' : '---'}</td>
-                <td style="text-align:right;"><button type="button" onclick="removeItem(${index})" style="background:none; color:#F23F43; font-size:1.2rem;">×</button></td>
+                <td style="text-align:right;">
+                    <button type="button" onclick="removeItem(${index})" style="background:none; color:#F23F43; font-size:1.2rem;">×</button>
+                </td>
             `;
             list.appendChild(tr);
         });
@@ -144,21 +147,27 @@
 
     function removeItem(index) {
         rawItems.splice(index, 1);
+        document.getElementById('summary').style.display = "none";
         renderTable();
     }
 
     async function fetchAllAndCalculate() {
         const btn = document.getElementById('finalBtn');
         btn.disabled = true;
-        btn.innerText = "Letöltés...";
+        btn.innerText = "MNB adatok letöltése...";
 
         try {
             const today = new Date();
             const till = `${today.getFullYear()}.+${String(today.getMonth()+1).padStart(2,'0')}.+${String(today.getDate()).padStart(2,'0')}.`;
             const mnbUrl = `https://www.mnb.hu/arfolyam-tablazat?deviza=rbCustom&devizaSelected=USD&datefrom=2020.+01.+01.&datetill=${till}&order=1&customdeviza%5B%5D=EUR&customdeviza%5B%5D=USD&customdeviza%5B%5D=GBP`;
 
-            const resp = await fetch(`${PROXY_URL}?url=${encodeURIComponent(mnbUrl)}`);
+            const fullUrl = `${PROXY_URL}?url=${encodeURIComponent(mnbUrl)}`;
+            
+            const resp = await fetch(fullUrl);
+            if (!resp.ok) throw new Error("A Proxy nem válaszol (Status: " + resp.status + ")");
+            
             const data = await resp.text();
+            
             const doc = new DOMParser().parseFromString(data, 'text/html');
             const rows = doc.querySelectorAll('table tbody tr');
             const months = {"január":"01","február":"02","március":"03","április":"04","május":"05","június":"06","július":"07","augusztus":"08","szeptember":"09","október":"10","november":"11","december":"12"};
@@ -182,12 +191,15 @@
             let totalHuf = 0;
             rawItems.forEach(item => {
                 let check = new Date(item.date);
+                let found = false;
+                // Visszakeresés max 15 napig (hétvégék/ünnepek miatt)
                 for (let i = 0; i < 15; i++) {
                     let iso = check.toISOString().split('T')[0];
                     if (ratesTable[iso]) {
                         item.rate = ratesTable[iso][item.curr];
                         item.huf = Math.round(item.amount * item.rate);
                         totalHuf += item.huf;
+                        found = true;
                         break;
                     }
                     check.setDate(check.getDate() - 1);
@@ -198,15 +210,23 @@
 
             const szja = Math.round(totalHuf * 0.15);
             const szocho = Math.round(totalHuf * 0.13);
+
             document.getElementById('summaryContent').innerHTML = `
-                <div style="display:flex; justify-content:space-between"><span>Alap összesen:</span> <b>${totalHuf.toLocaleString()} Ft</b></div>
-                <div style="display:flex; justify-content:space-between"><span>SZJA:</span> <span>${szja.toLocaleString()} Ft</span></div>
-                <div style="display:flex; justify-content:space-between"><span>SZOCHO:</span> <span>${szocho.toLocaleString()} Ft</span></div>
-                <div class="grand-total" style="display:flex; justify-content:space-between"><span>ADÓ:</span> <span>${(szja+szocho).toLocaleString()} Ft</span></div>
+                <div style="display:flex; justify-content:space-between"><span>Bruttó alap összesen:</span> <b>${totalHuf.toLocaleString()} Ft</b></div>
+                <div style="display:flex; justify-content:space-between; margin-top:5px;"><span>Összes SZJA (15%):</span> <span>${szja.toLocaleString()} Ft</span></div>
+                <div style="display:flex; justify-content:space-between"><span>Összes SZOCHO (13%):</span> <span>${szocho.toLocaleString()} Ft</span></div>
+                <div class="grand-total" style="display:flex; justify-content:space-between">
+                    <span>FIZETENDŐ ADÓ:</span> <span>${(szja + szocho).toLocaleString()} Ft</span>
+                </div>
             `;
             document.getElementById('summary').style.display = "block";
-        } catch (e) { alert("Hiba!"); }
-        finally { btn.disabled = false; btn.innerText = "SZÁMÍTÁS"; }
+
+        } catch (e) {
+            alert("Hiba a számítás során: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "SZÁMÍTÁS AZ MNB ÁRFOLYAMOK ALAPJÁN";
+        }
     }
 </script>
 </body>
